@@ -15,7 +15,6 @@ class Connection(asyncio.Protocol):
         self.closed = False
         self.queue = utils.Queue()
         self.responses = {}
-        self.commands = {}
         self.factory = None
         self.log = logging.getLogger(__name__)
 
@@ -26,8 +25,8 @@ class Connection(asyncio.Protocol):
             else:
                 klass = actions.Action
             data = klass(data, as_list=as_list)
-        self.transport.write(str(data).encode('utf8'))
         self.responses[data.id] = data
+        self.transport.write(str(data).encode('utf8'))
         return data.future
 
     def data_received(self, data):
@@ -52,11 +51,19 @@ class Connection(asyncio.Protocol):
             if message is None:
                 continue
 
-            response = self.responses.get(message.id)
+            response = None
+            if 'commandid' in message:
+                response = self.responses.get(message.commandid)
+            if response is None:
+                response = self.responses.get(message.id)
+
             if response is not None:
-                if response.add_message(message):
+                if response.add_message(self, message):
                     # completed; dequeue
-                    self.responses.pop(response.id)
+                    if 'commandid' in message:
+                        self.responses.pop(response.commandid)
+                    else:
+                        self.responses.pop(response.id)
             elif 'Event' in message:
                 self.factory.dispatch(message)
 

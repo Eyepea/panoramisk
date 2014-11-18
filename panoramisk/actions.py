@@ -75,7 +75,7 @@ class Action(utils.CaseInsensitiveDict):
             return True
         return False
 
-    def add_message(self, message):
+    def add_message(self, connection, message):
         self.responses.append(message)
         if self.completed:
             if self.multi:
@@ -109,7 +109,23 @@ class Command(Action):
             self['Action'] = 'Command'
         if 'commandid' not in self:
             self['CommandID'] = self.command_id_generator()
+        self.launched = False
 
-    @property
-    def id(self):
-        return self.commandid
+    def add_message(self, connection, message):
+        self.responses.append(message)
+        if self.completed:
+            if self.launched:
+                if self.multi:
+                    self.future.set_result(self.responses)
+                else:
+                    self.future.set_result(self.responses[-1])
+            else:
+                self.launched = True
+                if message.response in ('Success'):
+                    connection.responses[self.commandid] = self
+                else:
+                    if self.multi:
+                        self.future.set_result(self.responses)
+                    else:
+                        self.future.set_result(self.responses[-1])
+            return True

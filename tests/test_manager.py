@@ -72,6 +72,15 @@ def test_asyncagi_get_variable(manager):
     assert pretty_result['value'] == 'SIP/000000'
 
 
+def test_asyncagi_get_variable_on_dead_channel(manager):
+    manager = manager(stream='asyncagi_channel_does_not_exist.yaml')
+    future = manager.send_agi_command('SIP/eeeeee-00000014', 'GET VARIABLE DIALSTATUS')
+    response = future.result()
+
+    assert response.response == 'Error'
+    assert response.message == 'Channel SIP/eeeeee-00000014 does not exist.'
+
+
 def test_originate_sync(manager):
     manager = manager(stream='originate_sync.yaml')
     future = manager.send_action({'Action': 'Originate', 'Async': 'false'})
