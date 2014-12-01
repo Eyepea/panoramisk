@@ -4,7 +4,7 @@ import re
 from . import utils
 
 
-AGI_RESULT_REGEX = re.compile(r'(?P<status_code>\d{3})(?: result=(?P<result>[0-9]+)?(?: \(?(?P<value>.*)\))?)|(?:-.*)')
+AGI_RESULT_REGEX = re.compile(r'(?P<status_code>\d{3})(?: result=(?P<result>\-?[0-9]+)?(?: \(?(?P<value>.*)\))?)|(?:-.*)')
 
 
 class Message(utils.CaseInsensitiveDict):
@@ -91,6 +91,8 @@ class Message(utils.CaseInsensitiveDict):
             if m:
                 d = m.groupdict()
                 d['status_code'] = int(d['status_code'])
+                if 'result' in d:
+                    d['result'] = int(d['result'])
                 return d
             else:
                 raise ValueError
